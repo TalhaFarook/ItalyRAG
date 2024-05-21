@@ -1,4 +1,3 @@
 .rag_st
 __pycache__/
-.streamlit
 convert.py
