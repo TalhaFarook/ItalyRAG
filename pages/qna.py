@@ -5,8 +5,9 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_core.runnables import RunnablePassthrough
 import os
+from navigation import make_sidebar
 
-st.set_page_config(page_title="QnA", page_icon="🤖")
+make_sidebar()
 
 st.title('🤖⚙️ Bot italiano')
 

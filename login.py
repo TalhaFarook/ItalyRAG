@@ -1,7 +1,8 @@
 import streamlit as st
 from time import sleep
+from navigation import make_sidebar
 
-st.set_page_config(page_title="Login", page_icon="🤖")
+make_sidebar()
 
 st.html("""<h1 style="text-align: center;">Welcome</h1>""")
 
