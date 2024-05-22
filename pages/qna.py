@@ -14,32 +14,33 @@ st.title('🤖⚙️ Bot italiano')
 os.environ['OPENAI_API_KEY'] = st.secrets["openai_key"]
 embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 
-vectorstore  = FAISS.load_local("italian_db_1", embeddings, allow_dangerous_deserialization = True)
-retriever = vectorstore.as_retriever()
+vectorstore  = FAISS.load_local("documenti_italiani", embeddings, allow_dangerous_deserialization = True)
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 # Prompt
 from langchain import hub
-prompt = hub.pull("pondretti/rag-prompt-it")
+prompt_template = hub.pull("pondretti/rag-prompt-it")
 
 # LLM
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
-def get_response(question):
+def get_response(results):
 
-    # Chain
-    chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
+    context_text = "\n\n".join([doc.page_content for doc, _score in results])
+
+    prompt = prompt_template.format(context=context_text, question=question)
+
+    return llm.stream(
+        prompt
     )
-        
-    return chain.stream(
-        question
-    )
+
+def get_sources(question, k = 2):
+
+    results = vectorstore.similarity_search_with_score(question, k = k)
+
+    return results
 
 # session state
 if "chat_history" not in st.session_state:
@@ -66,6 +67,12 @@ if question is not None and question != "":
         st.markdown(question)
 
     with st.chat_message("AI"):
-        response = st.write_stream(get_response(question))  
+        sources = get_sources(question)
+        response = st.write_stream(get_response(sources))  
 
     st.session_state.chat_history.append(AIMessage(content=response))  
+
+    with st.chat_message("AI"):
+        sources_list = [doc.metadata.get("source", None).split('/')[-1] + ': P# ' + str(doc.metadata.get("page", None)+1) for doc, _score in sources]
+        formatted_sources = f"Fonti: {sources_list}"
+        st.markdown(formatted_sources)
